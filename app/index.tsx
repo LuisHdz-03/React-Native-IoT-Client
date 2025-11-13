@@ -1,7 +1,7 @@
 import { getColors } from "@/constants/colors";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { homeStyles } from "@/styles/home.styles";
-import { convertAudioToBase64 } from "@/utils/base64Helpers";
+import { audioWavToBase64, startRecording, stopRecording } from "@/utils/audioRecorder";
 import {
   ConnectionStatus,
   getStatusColor,
@@ -10,8 +10,7 @@ import {
 } from "@/utils/connectionStatus";
 import { imageToDataUrl } from "@/utils/imageBase64";
 import { takePhoto } from "@/utils/imageHelpers";
-import { pickMediaFile } from "@/utils/mediaHelpers";
-import { checkNodeRedConnection, sendToNodeRed } from "@/utils/nodeRedHelpers";
+import { checkNodeRedConnection, closeWebSocket, sendToNodeRed } from "@/utils/websocketHelpers";
 import { Ionicons } from "@expo/vector-icons";
 import { Camera } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
@@ -43,6 +42,7 @@ export default function HomeScreen() {
   const [hasGalleryPermission, setHasGalleryPermission] = useState<
     boolean | null
   >(null);
+  const [isRecordingAudio, setIsRecordingAudio] = useState<boolean>(false);
 
   useEffect(() => {
     // Verificar conexión con Node-RED al montar
@@ -54,6 +54,11 @@ export default function HomeScreen() {
         );
       }
     });
+
+    // Cleanup: cerrar WebSocket al desmontar
+    return () => {
+      closeWebSocket();
+    };
   }, []);
 
   useEffect(() => {
@@ -105,7 +110,7 @@ export default function HomeScreen() {
 
         if (!success) {
           throw new Error(
-            "No se pudo enviar a Node-RED. Verifica que esté corriendo en http://localhost:1880"
+            "No se pudo enviar a Node-RED. Verifica la conexión WebSocket"
           );
         }
 
@@ -115,8 +120,8 @@ export default function HomeScreen() {
       } else if (selectedMediaType === "audio") {
         console.log("[handleSendImage] Iniciando envío de audio a Node-RED");
 
-        // 1. Convertir audio a base64
-        const base64DataUrl = await convertAudioToBase64(selectedImage);
+        // 1. Convertir audio WAV a base64
+        const base64DataUrl = await audioWavToBase64(selectedImage);
 
         if (!base64DataUrl) {
           throw new Error("No se pudo convertir el audio a base64");
@@ -132,7 +137,7 @@ export default function HomeScreen() {
 
         if (!success) {
           throw new Error(
-            "No se pudo enviar a Node-RED. Verifica que esté corriendo en http://localhost:1880"
+            "No se pudo enviar a Node-RED. Verifica la conexión WebSocket"
           );
         }
 
@@ -156,11 +161,32 @@ export default function HomeScreen() {
     );
   };
 
-  const handlePickMediaFile = () => {
-    pickMediaFile(async (uri, type) => {
-      setSelectedImage(uri);
-      setSelectedMediaType(type);
-    });
+  const handleRecordAudio = async () => {
+    if (isRecordingAudio) {
+      // Detener grabación
+      const audioUri = await stopRecording();
+      setIsRecordingAudio(false);
+
+      if (audioUri) {
+        setSelectedImage(audioUri);
+        setSelectedMediaType("audio");
+        Alert.alert("Éxito", "Audio grabado correctamente");
+      }
+    } else {
+      // Iniciar grabación
+      const started = await startRecording();
+      if (started) {
+        setIsRecordingAudio(true);
+        setSelectedImage(null);
+        setSelectedMediaType(null);
+      }
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedImage(null);
+    setSelectedMediaType(null);
+    setConnectionStatus("connected");
   };
 
   return (
@@ -177,7 +203,7 @@ export default function HomeScreen() {
         ]}
       >
         <Text style={[homeStyles.headerTitle, { color: colors.text }]}>
-          Captura de Fotos y Audios
+          Captura de Fotos y Grabación de Audio
         </Text>
         <TouchableOpacity
           style={[
@@ -224,6 +250,20 @@ export default function HomeScreen() {
                 Audio listo para enviar
               </Text>
             </View>
+          ) : isRecordingAudio ? (
+            <View style={homeStyles.placeholderContainer}>
+              <Ionicons
+                name="mic"
+                size={80}
+                color={colors.error}
+                style={homeStyles.placeholderIcon}
+              />
+              <Text
+                style={[homeStyles.placeholderSubtext, { color: colors.error }]}
+              >
+                🔴 Grabando audio...
+              </Text>
+            </View>
           ) : (
             <View style={homeStyles.placeholderContainer}>
               <Ionicons
@@ -265,11 +305,32 @@ export default function HomeScreen() {
           )}
 
           <TouchableOpacity
-            style={[homeStyles.iconButton, { backgroundColor: colors.primary }]}
-            onPress={handlePickMediaFile}
+            style={[
+              homeStyles.iconButton, 
+              { 
+                backgroundColor: isRecordingAudio ? colors.error : colors.primary 
+              }
+            ]}
+            onPress={handleRecordAudio}
           >
-            <Ionicons name="folder-open" size={28} color="#FFFFFF" />
+            <Ionicons 
+              name={isRecordingAudio ? "stop-circle" : "mic"} 
+              size={28} 
+              color="#FFFFFF" 
+            />
           </TouchableOpacity>
+
+          {selectedImage && (
+            <TouchableOpacity
+              style={[
+                homeStyles.iconButton,
+                { backgroundColor: colors.warning || "#FF9500" },
+              ]}
+              onPress={handleClearSelection}
+            >
+              <Ionicons name="refresh" size={28} color="#FFFFFF" />
+            </TouchableOpacity>
+          )}
         </View>
 
         {selectedImage && selectedMediaType === "audio" && (

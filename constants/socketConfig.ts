@@ -1,7 +1,7 @@
 import * as Device from "expo-device";
 // Aqui namas configuras el url del nodered y si
 export const SOCKET_CONFIG = {
-  url: "http://localhost:1880",
+  url: "https://cormoid-annika-unenforcedly.ngrok-free.dev",
   options: {
     transports: ["websocket"],
     reconnection: true,
