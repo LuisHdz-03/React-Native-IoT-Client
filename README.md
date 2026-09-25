@@ -1,50 +1,38 @@
-# Welcome to your Expo app 👋
+# <img src="https://api.iconify.design/ph:cpu-bold.svg?color=%2338C2FF" height="32" valign="middle"/> IoT Media Client (React Native)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplicación móvil desarrollada con React Native (Expo) diseñada para la captura y transmisión de datos multimedia en tiempo real hacia flujos de automatización en **Node-RED**. Este cliente funciona como un puente entre los sensores del dispositivo móvil y arquitecturas IoT.
 
-## Get started
+---
 
-1. Install dependencies
+## <img src="https://api.iconify.design/ph:sparkle-bold.svg?color=%2338C2FF" height="28" valign="middle"/> Características Principales
 
-   ```bash
-   npm install
-   ```
+*   **Captura de Hardware Nativo:** Integración con `expo-camera`, `expo-image-picker` y `expo-av` para captura de fotografías y grabación de audio directamente desde el dispositivo.
+*   **Procesamiento en el Cliente:** Redimensión, compresión de imágenes y conversión de formatos de audio a cadenas Base64 para optimizar la transmisión de datos.
+*   **Comunicación Bidireccional:** Envío de cargas útiles (Payloads en JSON) mediante conexiones de baja latencia usando **WebSockets** y respaldos vía HTTP POST.
+*   **Almacenamiento en la Nube:** Arquitectura preparada y configurada para persistencia de archivos multimedia usando **Firebase Storage** y **Firestore**.
 
-2. Start the app
+---
 
-   ```bash
-   npx expo start
-   ```
+## <img src="https://api.iconify.design/ph:code-bold.svg?color=%2338C2FF" height="28" valign="middle"/> Stack Tecnológico
 
-In the output, you'll find options to open the app in a
+*   **Framework Core:** React Native 0.81 (Expo SDK 54 + Expo Router)
+*   **Lenguaje:** TypeScript
+*   **Comunicaciones:** Socket.IO / WebSockets Nativos / API Fetch
+*   **Integración IoT:** Node-RED (vía túneles de ngrok)
+*   **BaaS:** Firebase (Realtime Database, Storage, Firestore)
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+---
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## <img src="https://api.iconify.design/ph:folder-open-bold.svg?color=%2338C2FF" height="28" valign="middle"/> Flujo de Datos (Data Flow)
 
-## Get a fresh project
+Al capturar un archivo multimedia, el cliente empaqueta la información y la transmite al servidor Node-RED bajo la siguiente estructura JSON:
 
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```json
+{
+  "tipo": "imagen | audio",
+  "data": "data:image/jpeg;base64,...",
+  "metadata": {
+    "usuario": "modelo-del-dispositivo",
+    "timestamp": "2026-09-24T20:19:42Z"
+  }
+}
